@@ -9,8 +9,11 @@ import * as assert from 'assert';
 import { Hover, MarkupContent, Position } from 'vscode-languageserver-types';
 import { LanguageHandlers } from '../src/languageserver/handlers/languageHandlers';
 import { SettingsState, TextDocumentTestManager } from '../src/yamlSettings';
-import { expect } from 'chai';
+import { expect, use as chaiUse } from 'chai';
+import * as chaiAsPromised from 'chai-as-promised';
 import { TestTelemetry } from './utils/testsTypes';
+
+chaiUse(chaiAsPromised);
 
 describe('Hover Tests', () => {
   let languageSettingsSetup: ServiceSetup;
@@ -539,6 +542,19 @@ Source: [${SCHEMA_ID}](file:///${SCHEMA_ID})`
       const result = await parseSetup(content);
       expect(telemetry.messages).to.be.empty;
       expect(result).to.be.null;
+    });
+
+    it('should not error on non-string enum types', async () => {
+      languageService.addSchema(SCHEMA_ID, {
+        type: 'object',
+        properties: {
+          prop: {
+            enum: [null, 42, 'test'],
+          },
+        },
+      });
+      const content = 'prop: |4|2'; // len: 8, pos: 6
+      await expect(parseSetup(content)).to.be.fulfilled;
     });
   });
 });
